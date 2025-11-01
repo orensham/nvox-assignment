@@ -2,12 +2,16 @@
 name = "nvox"
 version = "0.1.0"
 requires-python = "==3.11.*"
-dependencies = []
+dependencies = [
+    "auth>=0.5.3",
+    "uvicorn>=0.38.0",
+]
 
 
 [tool.uv.workspace]
 members = [
     "packages/*",
+	 "apps/*",
 ]
 
 [tool.uv.sources]

@@ -1,7 +1,7 @@
 from math import e
 import asyncpg
 import os
-from typing import Any, Optional
+from typing import Optional
 
 DATABASE_CONFIG = {
     "host": os.getenv("DB_HOST", "localhost"),
@@ -17,12 +17,13 @@ DATABASE_CONFIG = {
 
 class PostgresClient:
     def __init__(self) -> None:
-        self.config = config
+        self.config = DATABASE_CONFIG
         self.pool: Optional[asyncpg.Pool] = None
 
-    async def connect(self) -> None:
+    async def connect(self) -> asyncpg.Pool:
         if self.pool is None:
             self.pool = await asyncpg.create_pool(**self.config)
+            return self.pool
         else:
             raise RuntimeError("Database pool is already initialized.")
 
@@ -30,11 +31,3 @@ class PostgresClient:
         if self.pool:
             await self.pool.close()
             self.pool = None
-
-    async def fetch(self, query: str, *args: Any) -> list[asyncpg.Record]:
-        async with self.pool.acquire() as conn:
-            return await conn.fetch(query, *args)
-
-    async def fetchRow(self, query: str, *args: Any) -> Optional[asyncpg.Record]:
-        async with self.pool.acquire() as conn:
-            return await conn.fetchrow(query, *args)
