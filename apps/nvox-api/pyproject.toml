@@ -9,6 +9,7 @@ dependencies = [
     "uvicorn>=0.38.0",
     "nvox-db",
     "bcrypt>=4.2.1",
+    "python-jose[cryptography]>=3.3.0",
 ]
 
 [dependency-groups]

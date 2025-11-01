@@ -24,3 +24,27 @@ class SignupResponse(BaseModel):
     email: str
     message: str
     journey: Dict[str, Any]
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=1)
+
+
+class LoginResponse(BaseModel):
+    success: bool
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    user_id: UUID
+    message: str
+
+
+class LogoutResponse(BaseModel):
+    success: bool
+    message: str
+
+
+class TokenData(BaseModel):
+    user_id: UUID
+    email_hash: str
