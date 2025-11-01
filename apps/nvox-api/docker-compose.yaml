@@ -18,6 +18,22 @@ services:
     networks:
       - nvox-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: nvox-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - nvox-network
+
   api:
     build:
       context: ../..
@@ -34,16 +50,24 @@ services:
       DB_POOL_MIN: 10
       DB_POOL_MAX: 50
       DB_TIMEOUT: 60
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      REDIS_MAX_CONNECTIONS: 50
+      REDIS_TIMEOUT: 5
     ports:
       - "8000:8000"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - nvox-network
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   nvox-network:
