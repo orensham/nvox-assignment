@@ -5,6 +5,7 @@ description = "Nvox's API service"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi>=0.120.4",
+    "fastapi[standard]==0.115.5",
     "uvicorn>=0.38.0",
+    "nvox-db",
 ]

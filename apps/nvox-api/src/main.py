@@ -1,18 +1,22 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from typing import Any
+from nvox_common.db.nvox_db_client import NvoxDBClient
 import uvicorn
+
+from api.main import api_router
+from nvox_common.db.postgres_client import PostgresClient
+import dependencies.db as db
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> Any:
-    # initilize Postgres DB client
-    print("Starting up application")
-
+async def lifespan(_app: FastAPI) -> Any:
+    conn = await PostgresClient().connect()
+    _app.dependency_overrides[db.get_db_client] = lambda: NvoxDBClient(conn)
     try:
         yield
     finally:
-        print("Shutting down application")
+        await conn.disconnect()
 
 
 app = FastAPI(
@@ -22,6 +26,9 @@ app = FastAPI(
     swagger_ui_parameters={"persistAuthorization": True},
     lifespan=lifespan,
 )
+
+
+app.include_router(api_router, prefix="/v1")
 
 
 @app.get("/alive")

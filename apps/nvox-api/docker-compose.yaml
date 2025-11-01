@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nvox-postgres
+    environment:
+      POSTGRES_DB: transplant_journey
+      POSTGRES_USER: transplant_user
+      POSTGRES_PASSWORD: change_me_in_production
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U transplant_user -d transplant_journey"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nvox-network
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/nvox-api/Dockerfile
+    container_name: nvox-api
+    profiles:
+      - api
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: transplant_journey
+      DB_USER: transplant_user
+      DB_PASSWORD: change_me_in_production
+      DB_POOL_MIN: 10
+      DB_POOL_MAX: 50
+      DB_TIMEOUT: 60
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nvox-network
+
+volumes:
+  postgres_data:
+
+networks:
+  nvox-network:
+    driver: bridge
