@@ -1,0 +1,28 @@
+[project]
+name = "nvox-db"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "Oren Shamun", email = "oren.shamun@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "asyncpg>=0.30.0",
+]
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "testcontainers>=4.13.2",
+]
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nvox_common"]
