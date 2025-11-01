@@ -50,6 +50,23 @@ async def db_schema(db_connection_params):
         CREATE INDEX IF NOT EXISTS idx_users_journey_stage ON users(journey_stage);
     """)
 
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS sessions (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            token_jti VARCHAR(255) UNIQUE NOT NULL,
+            expires_at TIMESTAMP NOT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            revoked_at TIMESTAMP,
+            is_active BOOLEAN NOT NULL DEFAULT TRUE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_sessions_token_jti ON sessions(token_jti);
+        CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+        CREATE INDEX IF NOT EXISTS idx_sessions_active ON sessions(is_active) WHERE is_active = TRUE;
+        CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+    """)
+
     await conn.close()
     yield
 
