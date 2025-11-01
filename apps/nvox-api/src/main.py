@@ -11,12 +11,13 @@ import dependencies.db as db
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> Any:
-    conn = await PostgresClient().connect()
+    db_client = PostgresClient()
+    conn = await db_client.connect()
     _app.dependency_overrides[db.get_db_client] = lambda: NvoxDBClient(conn)
     try:
         yield
     finally:
-        await conn.disconnect()
+        await db_client.disconnect()
 
 
 app = FastAPI(

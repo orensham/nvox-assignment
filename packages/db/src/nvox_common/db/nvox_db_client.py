@@ -13,3 +13,7 @@ class NvoxDBClient:
     async def fetchRow(self, query: str, *args: Any) -> Optional[asyncpg.Record]:
         async with self.pool.acquire() as conn:
             return await conn.fetchrow(query, *args)
+
+    async def execute(self, query: str, *args: Any) -> str:
+        async with self.pool.acquire() as conn:
+            return await conn.execute(query, *args)
