@@ -8,4 +8,13 @@ dependencies = [
     "fastapi[standard]==0.115.5",
     "uvicorn>=0.38.0",
     "nvox-db",
+    "bcrypt>=4.2.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-asyncio>=0.24.0",
+    "testcontainers>=4.13.2",
+    "httpx>=0.28.1",
 ]

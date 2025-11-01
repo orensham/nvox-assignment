@@ -31,3 +31,14 @@ class PostgresClient:
         if self.pool:
             await self.pool.close()
             self.pool = None
+
+    async def check_db_health(self) -> bool:
+        if self.pool is None:
+            raise RuntimeError("Database pool is not initialized.")
+
+        try:
+            async with self.pool.acquire() as connection:
+                await connection.execute("SELECT 1;")
+            return True
+        except Exception:
+            return False
