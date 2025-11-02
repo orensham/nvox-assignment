@@ -5,22 +5,28 @@ from nvox_common.db.nvox_db_client import NvoxDBClient
 import asyncpg
 import json
 
+from .db_models import (
+    UserJourneyStateDB,
+    UserAnswerDB,
+    StageTransitionDB,
+    UserJourneyPathDB,
+    optional_record_to_model,
+    records_to_models
+)
+
 
 class JourneyRepository:
     def __init__(self, db_client: NvoxDBClient):
         self.db_client = db_client
 
-    async def get_user_journey_state(self, user_id: UUID) -> Optional[asyncpg.Record]:
-        """Get current journey state for a user"""
-        return await self.db_client.fetchRow(
+    async def get_user_journey_state(self, user_id: UUID) -> Optional[UserJourneyStateDB]:
+        row = await self.db_client.fetchRow(
             """
-            SELECT id, user_id, current_stage_id, visit_number,
-                   journey_started_at, last_updated_at, created_at
-            FROM user_journey_state
-            WHERE user_id = $1
+            SELECT * FROM user_journey_state WHERE user_id = $1
             """,
             user_id
         )
+        return optional_record_to_model(row, UserJourneyStateDB)
 
     async def create_journey_state(
         self,
@@ -85,7 +91,7 @@ class JourneyRepository:
             user_id,
             question_id
         )
-        next_version = version_result["next_version"] if version_result else 1
+        next_version = dict(version_result)["next_version"] if version_result else 1
 
         await self.db_client.execute(
             """
@@ -106,14 +112,24 @@ class JourneyRepository:
     async def get_current_answers(
         self,
         user_id: UUID,
-        stage_id: Optional[str] = None
-    ) -> List[asyncpg.Record]:
-
-        if stage_id:
-            return await self.db_client.fetch(
+        stage_id: Optional[str] = None,
+        visit_number: Optional[int] = None
+    ) -> List[UserAnswerDB]:
+        if stage_id and visit_number is not None:
+            rows = await self.db_client.fetch(
                 """
-                SELECT question_id, answer_value, stage_id, visit_number, answered_at
-                FROM user_answers
+                SELECT * FROM user_answers
+                WHERE user_id = $1 AND stage_id = $2 AND visit_number = $3 AND is_current = TRUE
+                ORDER BY answered_at DESC
+                """,
+                user_id,
+                stage_id,
+                visit_number
+            )
+        elif stage_id:
+            rows = await self.db_client.fetch(
+                """
+                SELECT * FROM user_answers
                 WHERE user_id = $1 AND stage_id = $2 AND is_current = TRUE
                 ORDER BY answered_at DESC
                 """,
@@ -121,48 +137,46 @@ class JourneyRepository:
                 stage_id
             )
         else:
-            return await self.db_client.fetch(
+            rows = await self.db_client.fetch(
                 """
-                SELECT question_id, answer_value, stage_id, visit_number, answered_at
-                FROM user_answers
+                SELECT * FROM user_answers
                 WHERE user_id = $1 AND is_current = TRUE
                 ORDER BY answered_at DESC
                 """,
                 user_id
             )
+        return records_to_models(rows, UserAnswerDB)
 
     async def get_answer(
         self,
         user_id: UUID,
         question_id: str
-    ) -> Optional[asyncpg.Record]:
-        return await self.db_client.fetchRow(
+    ) -> Optional[UserAnswerDB]:
+        row = await self.db_client.fetchRow(
             """
-            SELECT question_id, answer_value, stage_id, visit_number,
-                   answered_at, version, is_current
-            FROM user_answers
+            SELECT * FROM user_answers
             WHERE user_id = $1 AND question_id = $2 AND is_current = TRUE
             """,
             user_id,
             question_id
         )
+        return optional_record_to_model(row, UserAnswerDB)
 
     async def get_answer_history(
         self,
         user_id: UUID,
         question_id: str
-    ) -> List[asyncpg.Record]:
-        return await self.db_client.fetch(
+    ) -> List[UserAnswerDB]:
+        rows = await self.db_client.fetch(
             """
-            SELECT question_id, answer_value, stage_id, visit_number,
-                   answered_at, version, is_current
-            FROM user_answers
+            SELECT * FROM user_answers
             WHERE user_id = $1 AND question_id = $2
             ORDER BY version DESC
             """,
             user_id,
             question_id
         )
+        return records_to_models(rows, UserAnswerDB)
 
     async def record_transition(
         self,
@@ -199,18 +213,16 @@ class JourneyRepository:
     async def get_transition_history(
         self,
         user_id: UUID
-    ) -> List[asyncpg.Record]:
-        return await self.db_client.fetch(
+    ) -> List[StageTransitionDB]:
+        rows = await self.db_client.fetch(
             """
-            SELECT from_stage_id, to_stage_id, from_visit_number, to_visit_number,
-                   transition_reason, matched_rule_id, matched_question_id,
-                   matched_answer_value, transitioned_at
-            FROM stage_transitions
+            SELECT * FROM stage_transitions
             WHERE user_id = $1
             ORDER BY transitioned_at ASC
             """,
             user_id
         )
+        return records_to_models(rows, StageTransitionDB)
 
     async def enter_stage(
         self,
@@ -241,29 +253,29 @@ class JourneyRepository:
     async def get_current_path_entry(
         self,
         user_id: UUID
-    ) -> Optional[asyncpg.Record]:
-        return await self.db_client.fetchRow(
+    ) -> Optional[UserJourneyPathDB]:
+        row = await self.db_client.fetchRow(
             """
-            SELECT id, stage_id, visit_number, entered_at, exited_at, is_current
-            FROM user_journey_path
+            SELECT * FROM user_journey_path
             WHERE user_id = $1 AND is_current = TRUE
             """,
             user_id
         )
+        return optional_record_to_model(row, UserJourneyPathDB)
 
     async def get_path_history(
         self,
         user_id: UUID
-    ) -> List[asyncpg.Record]:
-        return await self.db_client.fetch(
+    ) -> List[UserJourneyPathDB]:
+        rows = await self.db_client.fetch(
             """
-            SELECT stage_id, visit_number, entered_at, exited_at, is_current
-            FROM user_journey_path
+            SELECT * FROM user_journey_path
             WHERE user_id = $1
             ORDER BY entered_at ASC
             """,
             user_id
         )
+        return records_to_models(rows, UserJourneyPathDB)
 
     async def get_stage_visit_count(
         self,
@@ -279,7 +291,7 @@ class JourneyRepository:
             user_id,
             stage_id
         )
-        return result["visit_count"] if result else 0
+        return dict(result)["visit_count"] if result else 0
 
     async def anonymize_user_data(self, user_id: UUID, anonymized_email_hash: str) -> None:
 
@@ -294,3 +306,82 @@ class JourneyRepository:
             anonymized_email_hash,
             user_id
         )
+
+    async def get_visit_history(self, user_id: UUID) -> List[str]:
+        rows = await self.db_client.fetch(
+            """
+            SELECT stage_id
+            FROM user_journey_path
+            WHERE user_id = $1
+            GROUP BY stage_id
+            ORDER BY MIN(entered_at) ASC
+            """,
+            user_id
+        )
+        return [row["stage_id"] for row in rows]
+
+    async def perform_stage_transition(
+        self,
+        user_id: UUID,
+        from_stage_id: str,
+        to_stage_id: str,
+        from_visit_number: int,
+        to_visit_number: int,
+        transition_reason: Optional[str] = None,
+        matched_rule_id: Optional[str] = None,
+        matched_question_id: Optional[str] = None,
+        matched_answer_value: Optional[Any] = None
+    ) -> None:
+        async with self.db_client.transaction() as tx:
+            # Record the transition
+            await tx.execute(
+                """
+                INSERT INTO stage_transitions (
+                    user_id, from_stage_id, to_stage_id, from_visit_number,
+                    to_visit_number, transition_reason, matched_rule_id,
+                    matched_question_id, matched_answer_value
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                """,
+                user_id,
+                from_stage_id,
+                to_stage_id,
+                from_visit_number,
+                to_visit_number,
+                transition_reason,
+                matched_rule_id,
+                matched_question_id,
+                json.dumps(matched_answer_value) if matched_answer_value is not None else None
+            )
+
+            await tx.execute(
+                """
+                UPDATE user_journey_state
+                SET current_stage_id = $1,
+                    visit_number = $2,
+                    last_updated_at = NOW()
+                WHERE user_id = $3
+                """,
+                to_stage_id,
+                to_visit_number,
+                user_id
+            )
+
+            await tx.execute(
+                """
+                UPDATE user_journey_path
+                SET exited_at = NOW(), is_current = FALSE
+                WHERE user_id = $1 AND is_current = TRUE
+                """,
+                user_id
+            )
+
+            await tx.execute(
+                """
+                INSERT INTO user_journey_path (user_id, stage_id, visit_number, is_current)
+                VALUES ($1, $2, $3, TRUE)
+                """,
+                user_id,
+                to_stage_id,
+                to_visit_number
+            )

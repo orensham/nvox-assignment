@@ -1,18 +1,26 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from uuid import UUID
+from typing import Optional
 from api.models.auth import TokenData
 from utils.jwt import decode_access_token, get_user_id_from_token, get_jti_from_token
 from repositories.session_repository import SessionRepository
 from dependencies.repositories import get_session_repository
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     session_repository: SessionRepository = Depends(get_session_repository)
 ) -> TokenData:
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     token = credentials.credentials
 
     payload = decode_access_token(token)

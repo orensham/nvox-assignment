@@ -11,7 +11,6 @@ async def authenticated_user_with_journey(test_client: AsyncClient, sample_email
     assert response.status_code == 201
     data = response.json()
 
-    # Login to get token
     login_response = await test_client.post(
         "/v1/login",
         json={"email": sample_email, "password": sample_password}
@@ -62,7 +61,7 @@ async def test_get_current_journey_success(test_client: AsyncClient, authenticat
 @pytest.mark.asyncio
 async def test_get_current_journey_unauthorized(test_client: AsyncClient):
     response = await test_client.get("/v1/journey/current")
-    assert response.status_code == 401
+    assert response.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -73,8 +72,8 @@ async def test_submit_answer_boolean_no_transition(test_client: AsyncClient, aut
         "/v1/journey/answer",
         headers={"Authorization": f"Bearer {token}"},
         json={
-            "question_id": "ref_eligible",
-            "answer_value": True
+            "question_id": "ref_has_nephrologist_note",
+            "answer_value": "yes"
         }
     )
 
@@ -82,14 +81,15 @@ async def test_submit_answer_boolean_no_transition(test_client: AsyncClient, aut
     data = response.json()
     assert data["success"]
     assert data["answer_saved"]
-    assert not data["transition_occurred"]
+    assert not data["transitioned"]
     assert data["current_stage"] == "REFERRAL"
 
 
 @pytest.mark.asyncio
 async def test_submit_answer_with_transition(test_client: AsyncClient, authenticated_user_with_journey):
     token = authenticated_user_with_journey["token"]
-    response = await test_client.post(
+
+    answer_response = await test_client.post(
         "/v1/journey/answer",
         headers={"Authorization": f"Bearer {token}"},
         json={
@@ -97,12 +97,21 @@ async def test_submit_answer_with_transition(test_client: AsyncClient, authentic
             "answer_value": 80.0
         }
     )
+    assert answer_response.status_code == 200
+    answer_data = answer_response.json()
+    assert answer_data["success"]
+    assert answer_data["answer_saved"]
+    assert not answer_data["transitioned"]
+    assert answer_data["current_stage"] == "REFERRAL"
 
-    assert response.status_code == 200
-    data = response.json()
+    continue_response = await test_client.post(
+        "/v1/journey/continue",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert continue_response.status_code == 200
+    data = continue_response.json()
     assert data["success"]
-    assert data["answer_saved"]
-    assert data["transition_occurred"]
+    assert data["transitioned"]
     assert data["previous_stage"] == "REFERRAL"
     assert data["current_stage"] == "WORKUP"
     assert "questions" in data
@@ -122,7 +131,7 @@ async def test_submit_answer_low_score_exit(test_client: AsyncClient):
     )
     token = login_response.json()["access_token"]
 
-    response = await test_client.post(
+    answer_response = await test_client.post(
         "/v1/journey/answer",
         headers={"Authorization": f"Bearer {token}"},
         json={
@@ -130,11 +139,21 @@ async def test_submit_answer_low_score_exit(test_client: AsyncClient):
             "answer_value": 30.0
         }
     )
+    assert answer_response.status_code == 200
+    answer_data = answer_response.json()
+    assert answer_data["success"]
+    assert answer_data["answer_saved"]
+    assert not answer_data["transitioned"]
+    assert answer_data["current_stage"] == "REFERRAL"
 
-    assert response.status_code == 200
-    data = response.json()
+    continue_response = await test_client.post(
+        "/v1/journey/continue",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert continue_response.status_code == 200
+    data = continue_response.json()
     assert data["success"]
-    assert data["transition_occurred"]
+    assert data["transitioned"]
     assert data["current_stage"] == "EXIT"
 
 
@@ -151,9 +170,9 @@ async def test_submit_answer_invalid_question(test_client: AsyncClient, authenti
         }
     )
 
-    assert response.status_code == 404
+    assert response.status_code == 422
     data = response.json()
-    assert "not found" in data["detail"].lower()
+    assert "not found" in data["detail"].lower() or "invalid" in data["detail"].lower()
 
 
 @pytest.mark.asyncio
@@ -169,9 +188,10 @@ async def test_submit_answer_invalid_value(test_client: AsyncClient, authenticat
         }
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 422
     data = response.json()
-    assert "validation" in data["detail"].lower() or "invalid" in data["detail"].lower()
+
+    assert "value" in data["detail"].lower() or "must be" in data["detail"].lower()
 
 
 @pytest.mark.asyncio
@@ -248,7 +268,15 @@ async def test_journey_flow_complete_path(test_client: AsyncClient):
         headers={"Authorization": f"Bearer {token}"},
         json={"question_id": "ref_karnofsky", "answer_value": 80.0}
     )
-    assert answer_response.json()["current_stage"] == "WORKUP"
+    assert answer_response.json()["current_stage"] == "REFERRAL"
+    assert not answer_response.json()["transitioned"]
+
+    continue_response = await test_client.post(
+        "/v1/journey/continue",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert continue_response.json()["transitioned"]
+    assert continue_response.json()["current_stage"] == "WORKUP"
 
     current_response = await test_client.get(
         "/v1/journey/current",

@@ -51,7 +51,7 @@
           }
         },
         {
-          "id": "wrk_infections_cleared",
+          "id": "wrk_infections_active",
           "text": "Active infection present? (0=no, 1=yes)",
           "type": "number",
           "constraints": {

@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import AsyncGenerator
 from httpx import AsyncClient, ASGITransport
 from journey.config_loader import JourneyConfig, load_journey_config
-from journey.rules_loader import RoutingRules, load_routing_rules
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
@@ -28,20 +27,14 @@ def journey_repository(db_pool) -> JourneyRepository:
     return JourneyRepository(db_client)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 async def journey_config():
     config_path = Path(__file__).parent.parent / "config" / "journey_config.json"
     return await load_journey_config(config_path, redis_client=None)
 
 
-@pytest.fixture(scope="session")
-async def routing_rules():
-    rules_path = Path(__file__).parent.parent / "config" / "routing_rules.csv"
-    return await load_routing_rules(rules_path, redis_client=None)
-
-
 @pytest.fixture(scope="function")
-async def test_client(db_pool) -> AsyncGenerator[AsyncClient, None]:
+async def test_client(db_pool, journey_config) -> AsyncGenerator[AsyncClient, None]:
     app.dependency_overrides[db_deps.get_db_client] = lambda: NvoxDBClient(db_pool)
 
     transport = ASGITransport(app=app)

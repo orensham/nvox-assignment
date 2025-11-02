@@ -2,7 +2,8 @@ from typing import Optional
 from uuid import UUID
 from datetime import datetime
 from nvox_common.db.nvox_db_client import NvoxDBClient
-import asyncpg
+
+from .db_models import SessionDB, records_to_models
 
 
 class SessionRepository:
@@ -58,16 +59,16 @@ class SessionRepository:
 
         return is_active and expires_at > now
 
-    async def get_user_active_sessions(self, user_id: UUID) -> list[asyncpg.Record]:
-        return await self.db_client.fetch(
+    async def get_user_active_sessions(self, user_id: UUID) -> list[SessionDB]:
+        rows = await self.db_client.fetch(
             """
-            SELECT id, token_jti, expires_at, created_at
-            FROM sessions
+            SELECT * FROM sessions
             WHERE user_id = $1 AND is_active = TRUE AND expires_at > NOW()
             ORDER BY created_at DESC
             """,
             user_id
         )
+        return records_to_models(rows, SessionDB)
 
     async def revoke_all_user_sessions(self, user_id: UUID) -> int:
         result = await self.db_client.execute(

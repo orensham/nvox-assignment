@@ -1,5 +1,32 @@
 # nvox-api
 
+FastAPI-based backend service for the Transplant Journey System. Provides REST APIs for user authentication, journey management, and stage transitions based on medical criteria.
+
+## Project Structure
+
+```
+apps/nvox-api/
+├── config/                    # Journey configuration (stages, routing rules, edge cases)
+├── guidelines/                # Development guidelines
+├── migrations/                # Database migration SQL files
+├── src/                       # Source code
+│   ├── main.py               # Application entry point
+│   ├── api/                  # API layer (routes, models)
+│   │   ├── models/           # Pydantic request/response models
+│   │   └── routes/           # API route handlers (auth, journey)
+│   ├── dependencies/         # FastAPI dependencies (auth, database)
+│   ├── journey/              # Journey business logic (config, routing engine, rules)
+│   ├── repositories/         # Data access layer (user, journey, session)
+│   └── utils/                # Utilities (hashing, JWT)
+├── tests/                     # Test suite (integration, unit)
+│   ├── integration/          # API endpoint tests with testcontainers
+│   └── unit/                 # Unit tests
+├── docker-compose.yaml        # Docker Compose configuration
+├── Dockerfile                 # Multi-stage Docker build
+├── pyproject.toml            # Project dependencies and configuration
+└── pytest.ini                # Pytest configuration
+```
+
 ## Running with Docker
 
 ### Prerequisites

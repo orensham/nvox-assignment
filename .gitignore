@@ -201,6 +201,11 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Claude Code
+#  Claude Code is an AI-powered CLI tool. The `.claude` directory contains local state,
+#  conversation history, and configuration that should not be committed to version control.
+.claude/
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

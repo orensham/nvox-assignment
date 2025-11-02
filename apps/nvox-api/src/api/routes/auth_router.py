@@ -35,33 +35,13 @@ async def signup(
     journey_config = get_journey_config()
     entry_stage = journey_config.entry_stage
 
-    await user_repository.create_user(
+    # Create user and initialize journey atomically (all operations in one transaction)
+    await user_repository.create_user_with_journey(
         user_id=user_id,
         email_hash=email_hash,
         password_hash=password_hash,
-        journey_stage=entry_stage,
+        entry_stage=entry_stage,
         journey_started_at=journey_started_at
-    )
-
-    await journey_repository.create_journey_state(
-        user_id=user_id,
-        stage_id=entry_stage,
-        visit_number=1
-    )
-
-    await journey_repository.enter_stage(
-        user_id=user_id,
-        stage_id=entry_stage,
-        visit_number=1
-    )
-
-    await journey_repository.record_transition(
-        user_id=user_id,
-        from_stage_id=None,
-        to_stage_id=entry_stage,
-        from_visit_number=None,
-        to_visit_number=1,
-        transition_reason="Initial signup"
     )
 
     return SignupResponse(
@@ -85,7 +65,7 @@ async def login(
     user = await user_repository.get_user_by_email_hash(email_hash)
 
     dummy_hash = "$2b$12$dummy.hash.to.prevent.timing.attack.00000000000000000000000000000000000000000000"
-    password_hash = user["password_hash"] if user else dummy_hash
+    password_hash = user.password_hash if user else dummy_hash
     is_valid = verify_password(request.password, password_hash)
 
     if not is_valid or user is None:
@@ -95,12 +75,12 @@ async def login(
         )
 
     access_token, jti, expires_at = create_access_token(
-        user_id=user["id"],
+        user_id=user.id,
         email_hash=email_hash
     )
 
     await session_repository.create_session(
-        user_id=user["id"],
+        user_id=user.id,
         token_jti=jti,
         expires_at=expires_at
     )
@@ -110,7 +90,7 @@ async def login(
         access_token=access_token,
         token_type="bearer",
         expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        user_id=user["id"],
+        user_id=user.id,
         message="Login successful"
     )
 
