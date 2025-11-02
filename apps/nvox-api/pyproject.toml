@@ -10,7 +10,6 @@ dependencies = [
     "nvox-db",
     "bcrypt>=4.2.1",
     "python-jose[cryptography]>=3.3.0",
-    "redis>=5.0.0",
 ]
 
 [dependency-groups]
