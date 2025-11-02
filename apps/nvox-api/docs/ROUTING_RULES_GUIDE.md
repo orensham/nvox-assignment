@@ -65,8 +65,8 @@ python3 scripts/generate_edge_migration.py
 
 Output:
 ```
-✓ Generated migration: migrations/006_update_edges_from_csv.sql
-✓ Contains 29 routing rules
+Generated migration: migrations/006_update_edges_from_csv.sql
+Contains 29 routing rules
 ```
 
 #### Step 3: Apply Migration
@@ -75,7 +75,7 @@ docker exec -i nvox-postgres psql -U transplant_user -d transplant_journey \
   < migrations/006_update_edges_from_csv.sql
 ```
 
-✅ **Done!** New rule is active immediately (no API restart needed)
+**Done!** New rule is active immediately (no API restart needed)
 
 ---
 
@@ -104,7 +104,7 @@ docker exec -i nvox-postgres psql -U transplant_user -d transplant_journey \
   < migrations/006_update_edges_from_csv.sql
 ```
 
-✅ **Done!** Updated threshold is live
+**Done!** Updated threshold is live
 
 ---
 
@@ -124,7 +124,7 @@ python3 scripts/generate_edge_migration.py
 docker exec -i nvox-postgres psql ... < migrations/006_update_edges_from_csv.sql
 ```
 
-✅ **Done!** Path removed
+**Done!** Path removed
 
 ---
 
@@ -135,47 +135,32 @@ docker exec -i nvox-postgres psql ... < migrations/006_update_edges_from_csv.sql
 ```bash
 python3 scripts/generate_edge_migration.py --dry-run
 ```
-
-Output:
-```
-✓ 28 rules validated successfully
-```
-
-Or if errors:
-```
-❌ Validation errors:
-  • Row 5: range_min (7.0) > range_max (6.0)
-  • Row 8: Empty next_stage
-  • Overlapping ranges for BOARD.brd_risk_score:
-    Row 10 [0.0-7.0→PREOP] overlaps Row 11 [6.5-10.0→EXIT]
-```
-
 ---
 
 ## Validation Rules
 
 The generator script checks for:
 
-### ✅ Required Fields
+### Required Fields
 - All columns must have values
 - No empty cells allowed
 
-### ✅ Valid Ranges
+### Valid Ranges
 - `range_min` must be ≤ `range_max`
 - No negative ranges
 - Numeric values must be valid
 
-### ✅ No Overlaps
+### No Overlaps
 **Same stage + question cannot have overlapping ranges:**
 
-❌ **Bad** (overlapping):
+**Bad** (overlapping):
 ```csv
 BOARD,brd_risk_score,0.0,7.0,PREOP
 BOARD,brd_risk_score,6.5,10.0,EXIT
 ```
 *Problem: Values 6.5-7.0 match both rules*
 
-✅ **Good** (non-overlapping):
+**Good** (non-overlapping):
 ```csv
 BOARD,brd_risk_score,0.0,6.999,PREOP
 BOARD,brd_risk_score,7.0,10.0,EXIT
@@ -213,9 +198,6 @@ BOARD,brd_risk_score,5.501,10.0,EXIT
 #### 3. Validate
 ```bash
 python3 scripts/generate_edge_migration.py --dry-run
-```
-```
-✓ 28 rules validated successfully
 ```
 
 #### 4. Generate migration
@@ -260,65 +242,27 @@ git push origin tighten-preop-criteria
 #### 9. Create pull request
 
 Review process:
-- ✅ CSV changes are human-readable in diff
-- ✅ Generated SQL can be reviewed by DBA
-- ✅ Tests verify new behavior
+- CSV changes are human-readable in diff
+- Generated SQL can be reviewed by DBA
+- Tests verify new behavior
 
-#### 10. Deploy to production
-```bash
-# Production migration
-kubectl exec -i postgres-pod -- psql ... < migrations/006_update_edges_from_csv.sql
-```
-
-✅ **Done!** Rules updated in production, takes effect immediately
+**Done!** Rules updated in production, takes effect immediately
 
 ---
 
-## Tips & Best Practices
+## Best Practices
 
-### 🎯 Tip 1: Use Descriptive Migration Numbers
+### Use Descriptive Migration Numbers
 ```bash
 # Use semantic numbering
 python3 scripts/generate_edge_migration.py --number 006
 ```
 
-### 🎯 Tip 2: Always Use Dry Run First
+### Always Use Dry Run First
 ```bash
 # Validate before generating
 python3 scripts/generate_edge_migration.py --dry-run
 ```
-
-### 🎯 Tip 3: Keep CSV Clean
-- ✅ Sort by stage_id, then question_id
-- ✅ No empty rows at end
-- ✅ Consistent decimal places (e.g., always use `1.0` not `1`)
-
-### 🎯 Tip 4: Document Major Changes
-Add comments in Git commit messages:
-```bash
-git commit -m "Update BOARD routing rules
-
-- Tightened PREOP admission (risk ≤ 5.5, was 6.999)
-- Added emergency ICU path for risk > 9.0
-- Removed deprecated EXIT path
-
-Resolves: NVOX-123"
-```
-
-### 🎯 Tip 5: Test in Staging First
-```bash
-# Generate migration
-python3 scripts/generate_edge_migration.py
-
-# Apply to staging
-psql -h staging-db ... < migrations/006_update_edges_from_csv.sql
-
-# Run integration tests
-pytest tests/integration/
-
-# If all pass, promote to production
-```
-
 ---
 
 ## Advantages Over Direct SQL
@@ -334,64 +278,18 @@ pytest tests/integration/
 
 ---
 
-## Troubleshooting
-
-### Q: "CSV file not found"
-**A:** Make sure you're running from project root:
-```bash
-cd /path/to/nvox-assignment
-python3 apps/nvox-api/scripts/generate_edge_migration.py
-```
-
-### Q: "Overlapping ranges" error
-**A:** Two rules for same stage+question have overlapping ranges. Fix by adjusting boundaries:
-```csv
-# Before (overlaps at 7.0)
-BOARD,brd_risk_score,0.0,7.0,PREOP
-BOARD,brd_risk_score,7.0,10.0,EXIT
-
-# After (no overlap)
-BOARD,brd_risk_score,0.0,6.999,PREOP
-BOARD,brd_risk_score,7.0,10.0,EXIT
-```
-
-### Q: "Migration already exists"
-**A:** Specify a higher number:
-```bash
-python3 scripts/generate_edge_migration.py --number 999
-```
-
-### Q: Changes not taking effect?
-**A:** Check migration was applied:
-```bash
-docker exec nvox-postgres psql -U transplant_user -d transplant_journey \
-  -c "SELECT * FROM journey_edges WHERE from_node_id='BOARD';"
-```
-
----
-
 ## Summary
 
 ### Managing Routing Rules
 
-1. ✅ **Edit** `config/routing_rules.csv` (Excel, Google Sheets, VS Code)
-2. ✅ **Validate** with `--dry-run` flag
-3. ✅ **Generate** SQL migration
-4. ✅ **Apply** to database
-5. ✅ **Commit** both CSV and SQL to Git
-
-### Key Points
-
-- 📁 **Source of truth**: CSV file (easy to edit)
-- 🔄 **Generator script**: Converts CSV → SQL
-- 💾 **Runtime**: Rules loaded from database (not CSV)
-- ⚡ **Immediate**: Changes apply without API restart
-- 📝 **Version control**: Track changes in Git
-- ✅ **Validation**: Automatic checks for errors
-
+1. **Edit** `config/routing_rules.csv` (Excel, Google Sheets, VS Code)
+2. **Validate** with `--dry-run` flag
+3. **Generate** SQL migration
+4. **Apply** to database
+5. **Commit** both CSV and SQL to Git
 ---
 
 ## Next Steps
 
-- Read [ROUTING_FLOW.md](../../ROUTING_FLOW.md) to understand how rules are used at runtime
-- See [ROUTING_MANAGEMENT.md](../../ROUTING_MANAGEMENT.md) for advanced management options
+- Read [ROUTING_FLOW.md](ROUTING_FLOW.md) to understand how rules are used at runtime
+- See [ROUTING_MANAGEMENT.md](ROUTING_MANAGEMENT.md) for advanced management options

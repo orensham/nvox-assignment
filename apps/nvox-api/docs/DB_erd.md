@@ -100,30 +100,16 @@ erDiagram
 #### `users`
 - **Purpose**: Stores user accounts with PII protection
 - **Indexes**: `email_hash` (unique), `journey_stage`
-- **Key Fields**:
-  - `email_hash`: SHA-256 hashed email for anonymization support
-  - `password_hash`: Bcrypt hashed password with salt
-  - `journey_stage`: Denormalized current stage for quick access
 
 #### `sessions`
 - **Purpose**: JWT token management and logout functionality
 - **Indexes**: `token_jti` (unique), `user_id`, `is_active`, `expires_at`
-- **Key Fields**:
-  - `token_jti`: JWT ID claim for token tracking
-  - `is_active`: FALSE after logout, enables token revocation
-  - `revoked_at`: Timestamp of logout for audit trail
 
 ### Journey Routing Tables
 
 #### `journey_edges`
 - **Purpose**: Graph-based routing rules defining stage transitions
 - **Indexes**: Composite on `(from_node_id, to_node_id)`, `from_node_id`, `to_node_id`
-- **Key Fields**:
-  - `from_node_id`: Source stage (NULL for entry edge)
-  - `to_node_id`: Destination stage
-  - `condition_type`: Type of condition (`always`, `range`)
-  - `question_id`: Question to evaluate for routing decision
-  - `range_min`, `range_max`: Numeric range for `range` condition type
 - **Design**:
   - Entry edge: `from_node_id = NULL → to_node_id = 'REFERRAL'` (condition_type: `always`)
   - Conditional edges: Use `range` type to evaluate numeric question answers
@@ -136,43 +122,20 @@ erDiagram
 #### `user_journey_state`
 - **Purpose**: Tracks current journey state for each user (single source of truth)
 - **Indexes**: `user_id` (unique), `current_stage_id`, `last_updated_at`
-- **Key Fields**:
-  - `current_stage_id`: Current stage in journey (e.g., 'REFERRAL', 'WORKUP')
-  - `visit_number`: Increments on revisits to same stage (supports non-linear paths)
-  - `journey_started_at`: When user first began the journey
-  - `last_updated_at`: Last stage transition timestamp
 
 #### `user_answers`
 - **Purpose**: Stores all user answers with full versioning and audit trail
 - **Indexes**: Composite on `(user_id, stage_id)`, `(user_id, question_id)`, partial on `is_current`
-- **Key Fields**:
-  - `answer_value`: JSONB field for flexible answer types (numbers, text, arrays)
-  - `visit_number`: Which visit to the stage this answer belongs to
-  - `version`: Answer version number (increments on changes)
-  - `is_current`: TRUE only for the latest answer per question
 - **Versioning**: Previous answers are kept with `is_current = FALSE` for audit
 
 #### `stage_transitions`
 - **Purpose**: Immutable audit trail of all stage changes
 - **Indexes**: `user_id`, composite on `(user_id, transitioned_at)`, `from_stage_id`, `to_stage_id`
-- **Key Fields**:
-  - `from_stage_id`: Previous stage (NULL for initial entry)
-  - `to_stage_id`: New stage after transition
-  - `from_visit_number`, `to_visit_number`: Visit numbers for both stages
-  - `matched_rule_id`: UUID of the `journey_edges` row that triggered transition
-  - `matched_question_id`: Question ID that satisfied the routing condition
-  - `matched_answer_value`: The actual answer value that matched the edge condition
-  - `transition_reason`: Human-readable explanation of why transition occurred
 - **Immutability**: Never updated or deleted, provides complete audit trail
 
 #### `user_journey_path`
 - **Purpose**: Tracks detailed timeline of stage visits (entry/exit timestamps)
 - **Indexes**: `user_id`, composite on `(user_id, entered_at)`, partial unique on `is_current`
-- **Key Fields**:
-  - `entered_at`: When user entered this stage
-  - `exited_at`: When user left (NULL while still in stage)
-  - `is_current`: TRUE only for the current stage (enforced by unique constraint)
-  - `visit_number`: Which visit to this stage (1st, 2nd, 3rd, etc.)
 - **Timeline**: Complete record of time spent in each stage
 
 ## Design Patterns
@@ -293,60 +256,6 @@ VALUES ('REFERRAL', 'WORKUP', 'range', 'ref_karnofsky', 40.0, 100.0);
 INSERT INTO journey_edges (from_node_id, to_node_id, condition_type, question_id, range_min, range_max)
 VALUES ('BOARD', 'WORKUP', 'range', 'brd_needs_more_tests', 1.0, 1.0);
 ```
-
-### Example 4: Complete Routing Flow
-
-**Scenario**: User at BOARD stage answers `brd_risk_score = 5.5`
-
-1. **Query Outgoing Edges**:
-   ```sql
-   SELECT * FROM journey_edges WHERE from_node_id = 'BOARD';
-   ```
-   Returns:
-   - `BOARD → WORKUP` (if `brd_needs_more_tests` in [1.0, 1.0])
-   - `BOARD → PREOP` (if `brd_risk_score` in [0.0, 6.999])
-   - `BOARD → EXIT` (if `brd_risk_score` in [7.0, 10.0])
-
-2. **Evaluate Conditions**:
-   - `brd_needs_more_tests`: No answer → No match
-   - `brd_risk_score = 5.5`: Matches [0.0, 6.999] → `BOARD → PREOP` edge matches
-
-3. **Check Visit History**:
-   ```sql
-   SELECT stage_id FROM user_journey_path WHERE user_id = $1 GROUP BY stage_id ORDER BY MIN(entered_at);
-   ```
-   Returns: `['REFERRAL', 'WORKUP', 'BOARD']`
-
-4. **Visit-Aware Decision**:
-   - Matching edge: `BOARD → PREOP`
-   - Is `PREOP` in visit history? **No** → Forward edge
-   - Decision: Transition to `PREOP`
-
-5. **Record Transition**:
-   ```sql
-   -- Record in stage_transitions
-   INSERT INTO stage_transitions (
-     user_id, from_stage_id, to_stage_id, from_visit_number, to_visit_number,
-     matched_rule_id, matched_question_id, matched_answer_value, transition_reason
-   ) VALUES (
-     $user_id, 'BOARD', 'PREOP', 1, 1,
-     $edge_id, 'brd_risk_score', '5.5', 'Risk score 5.5 is within acceptable range [0.0-6.999]'
-   );
-
-   -- Update current state
-   UPDATE user_journey_state
-   SET current_stage_id = 'PREOP', visit_number = 1, last_updated_at = NOW()
-   WHERE user_id = $user_id;
-
-   -- Update journey path
-   UPDATE user_journey_path SET exited_at = NOW(), is_current = FALSE
-   WHERE user_id = $user_id AND is_current = TRUE;
-
-   INSERT INTO user_journey_path (user_id, stage_id, visit_number, is_current)
-   VALUES ($user_id, 'PREOP', 1, TRUE);
-   ```
-
----
 
 ## Related Documentation
 

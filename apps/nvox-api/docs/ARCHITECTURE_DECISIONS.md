@@ -30,8 +30,8 @@ A full-stack web application for tracking patients through the kidney transplant
 └─────────────────┘         └────────┬─────────┘         └─────────────────┘
       │                              │                           │
       │                              │                           ├─ users
-      ├─ Tailwind CSS                ├─ JWT Authentication       ├─ journey_edges ⭐
-      ├─ React 18                    ├─ Graph Routing Engine ⭐  ├─ stage_transitions
+      ├─ Tailwind CSS                ├─ JWT Authentication       ├─ journey_edges 
+      ├─ React 18                    ├─ Graph Routing Engine     ├─ stage_transitions
       ├─ Axios                       ├─ Repository Pattern       ├─ user_answers
       └─ Vite                        └─ Dependency Injection     └─ user_journey_path
                                      │
@@ -101,7 +101,7 @@ The routing engine is a **graph-based decision system** that determines patient 
                        │
                        ▼
 ┌──────────────────────────────────────────────────────────────┐
-│ 5. Apply Visit-Aware Priority Algorithm ⭐                   │
+│ 5. Apply Visit-Aware Priority Algorithm                    │
 │    ┌───────────────────────────────────────────────────────┐│
 │    │ # Separate edges by type                              ││
 │    │ revisit_edges = [e for e in matching_edges           ││
@@ -214,7 +214,7 @@ forward_edges = [BOARD → PREOP]   # PREOP NOT in visit_history
 
 ### Backend: FastAPI + Python 3.11
 
-**✅ Pros:**
+**Pros:**
 - **Performance**: Async/await support for high concurrency
 - **Type Safety**: Pydantic models provide runtime validation + IDE autocomplete
 - **Auto-Documentation**: OpenAPI/Swagger UI generated automatically
@@ -222,7 +222,7 @@ forward_edges = [BOARD → PREOP]   # PREOP NOT in visit_history
 - **Developer Experience**: Clean syntax, excellent error messages
 - **Ecosystem**: Rich library support (asyncpg, pytest, testcontainers)
 
-**❌ Cons:**
+**Cons:**
 - **Maturity**: Less mature than Django (fewer batteries included)
 - **ORM**: No built-in ORM (we use raw SQL with asyncpg)
 - **Community Size**: Smaller than Django ecosystem
@@ -237,14 +237,14 @@ forward_edges = [BOARD → PREOP]   # PREOP NOT in visit_history
 
 ### Frontend: React 18 + TypeScript + Vite
 
-**✅ Pros:**
+**Pros:**
 - **Type Safety**: TypeScript catches errors at compile time
 - **Performance**: Vite provides <1s HMR (Hot Module Replacement)
 - **Component Reusability**: React's component model fits journey stages pattern
 - **Ecosystem**: Huge library ecosystem (axios, react-router if needed)
 - **Developer Tools**: Excellent browser devtools support
 
-**❌ Cons:**
+**Cons:**
 - **Boilerplate**: More verbose than Vue/Svelte
 - **State Management**: Not included (simple project doesn't need Redux/Zustand)
 - **Build Complexity**: Vite config can be opaque
@@ -259,7 +259,7 @@ forward_edges = [BOARD → PREOP]   # PREOP NOT in visit_history
 
 ### Database: PostgreSQL 16 + asyncpg
 
-**✅ Pros:**
+**Pros:**
 - **ACID Compliance**: Critical for medical data integrity
 - **JSONB Support**: Flexible storage for `answer_value` (any question type)
 - **Performance**: asyncpg is fastest async Postgres driver for Python
@@ -268,7 +268,7 @@ forward_edges = [BOARD → PREOP]   # PREOP NOT in visit_history
 - **Indexes**: Comprehensive indexing strategies (partial, composite, GIN for JSONB)
 - **Graph Support**: Efficient storage and querying of `journey_edges` table
 
-**❌ Cons:**
+**Cons:**
 - **Operational Complexity**: Requires backup/replication setup for production
 - **Vertical Scaling Limits**: Single-server bottleneck (vs distributed NoSQL)
 - **Schema Migrations**: Requires careful planning (we use custom SQL)
@@ -280,21 +280,21 @@ forward_edges = [BOARD → PREOP]   # PREOP NOT in visit_history
 - Visit history queries require recursive CTEs (Postgres excels here)
 
 **Alternative Considered**: MongoDB
-- ❌ Rejected: No multi-document transactions until v4.0+
-- ❌ Rejected: JOIN performance poor for journey history queries
-- ❌ Rejected: No built-in answer versioning
+- Rejected: No multi-document transactions until v4.0+
+- Rejected: JOIN performance poor for journey history queries
+- Rejected: No built-in answer versioning
 
 ---
 
 ### Authentication: JWT + Session Blacklist
 
-**✅ Pros:**
+**Pros:**
 - **Stateless**: No server-side session storage needed
 - **Scalable**: Easy horizontal scaling (no sticky sessions)
 - **Standard**: Industry-standard token format
 - **Logout Support**: Session table enables token revocation
 
-**❌ Cons:**
+**Cons:**
 - **Token Size**: JWTs larger than session IDs
 - **Revocation Complexity**: Requires database lookup (session blacklist)
 - **Secret Management**: Requires secure key rotation strategy
@@ -304,14 +304,14 @@ forward_edges = [BOARD → PREOP]   # PREOP NOT in visit_history
 - Session table hybrid gives logout without full session store
 
 **Alternative Considered**: Server-side sessions
-- ❌ Rejected: Requires Redis/Memcached for horizontal scaling
-- ❌ Rejected: Adds infrastructure complexity
+- Rejected: Requires Redis/Memcached for horizontal scaling
+- Rejected: Adds infrastructure complexity
 
 ---
 
 ### Caching: Redis
 
-**✅ Pros:**
+**Pros:**
 - **Performance**: Sub-millisecond response times for configuration lookups
 - **Connection Pooling**: Handles concurrent requests efficiently (max 50 connections)
 - **Async Support**: Native async/await with redis-py
@@ -319,7 +319,7 @@ forward_edges = [BOARD → PREOP]   # PREOP NOT in visit_history
 - **Startup Caching**: Config loaded once at startup, not per-request
 - **Development**: Easy local testing with Docker
 
-**❌ Cons:**
+**Cons:**
 - **Additional Infrastructure**: Requires Redis server deployment
 - **Cache Invalidation**: Must reload config to pick up changes
 - **Memory Usage**: Config stored in RAM
@@ -354,18 +354,17 @@ route:last_reload                     → Last reload timestamp (Unix time)
 - **Edge queries from PostgreSQL**: ~2-5ms per request (with indexes)
 - **Overall improvement**: 5x faster than full file-based system
 
-**❌ Trade-offs**:
+**Trade-offs**:
 - Config changes require app restart (acceptable for infrequent changes)
 - Additional ops complexity (Redis monitoring)
 
 **Alternative Considered**: No caching (direct file reads)
-- ❌ Rejected: 10ms overhead per request unacceptable
-- ❌ Rejected: JSON parsing on every request wasteful
+- Rejected: JSON parsing on every request wasteful
 
 **Alternative Considered**: Cache edges in Redis
-- ❌ Rejected: Edges change infrequently; PostgreSQL fast enough with indexes
-- ❌ Rejected: Cache invalidation complexity when edges update
-- ✅ Benefit: Single source of truth (database) for routing rules
+- Rejected: Edges change infrequently; PostgreSQL fast enough with indexes
+- Rejected: Cache invalidation complexity when edges update
+- Benefit: Single source of truth (database) for routing rules
 
 ---
 
@@ -393,14 +392,14 @@ class GraphRepository:
         ...
 ```
 
-**✅ Benefits**:
+**Benefits**:
 - **Testability**: Easy to mock repositories in tests
 - **Type Safety**: Pydantic models ensure schema compliance
 - **Separation of Concerns**: Routes don't know about SQL
 - **Reusability**: Same repository across multiple routes
 - **Algorithm Encapsulation**: Visit-aware logic isolated in GraphRepository
 
-**❌ Trade-offs**:
+**Trade-offs**:
 - **Boilerplate**: More code than raw SQL in routes
 - **Abstraction Leakage**: Still need to understand SQL for complex queries
 
@@ -427,13 +426,13 @@ async def continue_journey(
     decision = await engine.evaluate_transition_with_graph(...)
 ```
 
-**✅ Benefits**:
+**Benefits**:
 - **Testability**: Override dependencies in tests via `app.dependency_overrides`
 - **Composability**: Dependencies can depend on other dependencies
 - **Type Safety**: Full IDE autocomplete for injected params
 - **Clean Architecture**: Repository layer injected at route level
 
-**❌ Trade-offs**:
+**Trade-offs**:
 - **Magic**: Less explicit than manual instantiation
 - **Learning Curve**: New developers must understand FastAPI DI
 
@@ -474,23 +473,7 @@ nvox-assignment/
 
 **Decision**: Store routing rules as explicit graph edges in database
 
-**Schema**:
-```sql
-CREATE TABLE journey_edges (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    from_node_id VARCHAR(50),          -- Source stage (NULL for entry)
-    to_node_id VARCHAR(50) NOT NULL,   -- Destination stage
-    condition_type VARCHAR(20) NOT NULL, -- 'range', 'equals', 'always'
-    question_id VARCHAR(100),           -- Question to evaluate
-    range_min DECIMAL(10, 3),          -- Min value (for 'range')
-    range_max DECIMAL(10, 3),          -- Max value (for 'range')
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE INDEX idx_journey_edges_from ON journey_edges(from_node_id);
-```
-
-**✅ Benefits**:
+**Benefits**:
 - **Explicit Graph Structure**: Edges are first-class entities, not implicit in rules
 - **Version Control**: Edge changes tracked through SQL migrations
 - **Immediate Updates**: No app restart needed to update routing logic
@@ -498,19 +481,9 @@ CREATE INDEX idx_journey_edges_from ON journey_edges(from_node_id);
 - **Audit Trail**: Edge IDs stored in `stage_transitions.matched_rule_id`
 - **Flexibility**: Easy to add new condition types (complex expressions, etc.)
 
-**❌ Trade-offs**:
+**Trade-offs**:
 - **Migration Required**: Adding edges requires SQL migration
 - **No Hot Reload**: Unlike CSV, can't edit in real-time (by design for safety)
-
-**Management Approach**: CSV Generator Script
-```bash
-# Edit routing_rules.csv in Excel/Google Sheets
-# Generate SQL migration
-python scripts/generate_edge_migration.py
-
-# Apply to database
-docker exec -i nvox-postgres psql ... < migrations/006_update_edges.sql
-```
 
 **Why This Hybrid Approach**:
 - CSV easy to edit for non-technical users
@@ -529,12 +502,12 @@ email_hash = hashlib.sha256(email.lower().encode()).hexdigest()
 await user_repository.create_user(email_hash=email_hash, ...)
 ```
 
-**✅ Benefits**:
+**Benefits**:
 - **Privacy**: Email addresses not stored in plaintext
 - **Compliance**: Easier GDPR/HIPAA compliance
 - **Anonymization**: Can anonymize by replacing hash
 
-**❌ Trade-offs**:
+**Trade-offs**:
 - **Irreversible**: Cannot recover original email (by design)
 - **Reset Passwords**: Requires separate email→hash lookup mechanism
 
@@ -553,12 +526,12 @@ UPDATE user_answers SET is_current = FALSE WHERE user_id = $1 AND question_id = 
 INSERT INTO user_answers (..., version = 3, is_current = TRUE);
 ```
 
-**✅ Benefits**:
+**Benefits**:
 - **Audit Trail**: Complete history of answer changes
 - **Rollback**: Can revert to previous answers if needed
 - **Analytics**: Can analyze answer patterns over time
 
-**❌ Trade-offs**:
+**Trade-offs**:
 - **Storage**: More rows per user (5-10x growth)
 - **Query Complexity**: Must filter `WHERE is_current = TRUE`
 
@@ -579,13 +552,13 @@ REFERRAL (v1) → WORKUP (v1) → MATCH (v1) → WORKUP (v2) → MATCH (v2)
 visit_number = await journey_repository.get_stage_visit_count(user_id, stage_id) + 1
 ```
 
-**✅ Benefits**:
+**Benefits**:
 - **Non-Linear Support**: Handles complex clinical workflows
 - **Answer Isolation**: Answers from visit 1 don't mix with visit 2
 - **Analytics**: Can measure how often patients loop back
 - **Visit-Aware Algorithm**: Enables revisit edge prioritization
 
-**❌ Trade-offs**:
+**Trade-offs**:
 - **Complexity**: More complex queries (`WHERE visit_number = ?`)
 - **Edge Cases**: Requires careful handling of "return to same stage"
 
@@ -605,13 +578,13 @@ CREATE TABLE stage_transitions (
 );
 ```
 
-**✅ Benefits**:
+**Benefits**:
 - **Compliance**: Regulatory requirements for medical audit trails
 - **Debugging**: Can replay entire journey to find bugs
 - **Analytics**: Full dataset for ML/analysis
 - **Edge Traceability**: Can query which edge caused each transition
 
-**❌ Trade-offs**:
+**Trade-offs**:
 - **Storage**: Grows indefinitely (requires archival strategy)
 - **No Corrections**: Cannot fix mistakes (must add compensating transition)
 
@@ -624,10 +597,10 @@ CREATE TABLE stage_transitions (
 **Approach**: 100% parameterized queries via asyncpg
 
 ```python
-# ✅ SAFE: Parameterized query
+# SAFE: Parameterized query
 await db_client.fetchRow("SELECT * FROM users WHERE email_hash = $1", email_hash)
 
-# ❌ DANGEROUS: String formatting (NEVER used)
+# DANGEROUS: String formatting (NEVER used)
 await db_client.fetchRow(f"SELECT * FROM users WHERE email_hash = '{email_hash}'")
 ```
 
@@ -643,8 +616,8 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 password_hash = pwd_context.hash(password)
 ```
 
-**✅ Benefits**: Slow hashing resists brute-force attacks
-**⏱️ Performance**: ~200ms per hash (acceptable for login)
+**Benefits**: Slow hashing resists brute-force attacks
+**Performance**: ~200ms per hash (acceptable for login)
 
 ---
 
@@ -655,7 +628,7 @@ password_hash = pwd_context.hash(password)
 - 1-hour expiration
 - JTI claim for revocation via `sessions` table
 
-**⚠️ Production Improvement**: Consider RS256 (asymmetric) for multi-service auth
+**Production Improvement**: Consider RS256 (asymmetric) for multi-service auth
 
 ---
 
@@ -663,7 +636,7 @@ password_hash = pwd_context.hash(password)
 
 **Current**: Allow all origins (development only)
 
-**⚠️ Production Required**:
+**Production Required**:
 ```python
 app.add_middleware(
     CORSMiddleware,
@@ -686,10 +659,10 @@ BOARD,brd_risk_score,0.0,6.999,PREOP
 ```
 
 **Problems**:
-1. ❌ **Non-deterministic**: First matching answer wins (database query order)
-2. ❌ **No priority**: Can't express "revisit edges have priority"
-3. ❌ **Implicit graph**: Edges not queryable as graph structure
-4. ❌ **Requires restart**: Changing rules requires API restart
+1. **Non-deterministic**: First matching answer wins (database query order)
+2. **No priority**: Can't express "revisit edges have priority"
+3. **Implicit graph**: Edges not queryable as graph structure
+4. **Requires restart**: Changing rules requires API restart
 
 **New System (Database graph)**:
 ```sql
@@ -700,10 +673,10 @@ VALUES
 ```
 
 **Benefits**:
-1. ✅ **Deterministic**: Visit-aware algorithm provides consistent priority
-2. ✅ **Explicit priority**: Revisit > forward (medical urgency)
-3. ✅ **Queryable graph**: Can analyze paths, detect cycles
-4. ✅ **Immediate updates**: Changes take effect without restart
+1. **Deterministic**: Visit-aware algorithm provides consistent priority
+2. **Explicit priority**: Revisit > forward (medical urgency)
+3. **Queryable graph**: Can analyze paths, detect cycles
+4. **Immediate updates**: Changes take effect without restart
 
 ### Visit-Aware Algorithm Details
 
@@ -786,29 +759,10 @@ else:
 ### Potential Graph Enhancements
 
 **1. Pathfinding Queries**
-```sql
--- "What paths lead from REFERRAL to HOME?"
-WITH RECURSIVE paths AS (
-  SELECT id, from_node_id, to_node_id, ARRAY[from_node_id, to_node_id] as path
-  FROM journey_edges WHERE from_node_id = 'REFERRAL'
-  UNION ALL
-  SELECT e.id, e.from_node_id, e.to_node_id, p.path || e.to_node_id
-  FROM journey_edges e
-  JOIN paths p ON e.from_node_id = p.to_node_id
-  WHERE NOT e.to_node_id = ANY(p.path)  -- Prevent cycles
-)
-SELECT * FROM paths WHERE to_node_id = 'HOME';
-```
 
 **2. Cycle Detection**
-- Find all loops in journey graph
-- Identify which stages have revisit edges
-- Warn if new edge creates unexpected cycle
 
 **3. "What-If" Analysis**
-- If user improves test score X, which stages become reachable?
-- Simulate edge evaluation without committing transition
-- Show user potential paths based on hypothetical answers
 
 ---
 
@@ -820,50 +774,12 @@ SELECT * FROM paths WHERE to_node_id = 'HOME';
 1. **Phase 1**: Add Postgres read replicas for journey history queries
 2. **Phase 2**: Partition `stage_transitions` by date (archive old transitions)
 3. **Phase 3**: Shard users by `user_id` hash (requires app-level sharding)
-4. **Phase 4**: Cache hot edges in Redis (95%ile = 10 most common edges)
+4. **Phase 4**: Cache hot edges in Redis
 
 **Bottlenecks**:
-- Postgres write throughput: ~5,000 TPS (transitions)
-- Redis memory: Config size ~1MB (not a bottleneck)
-- Graph query performance: ~2-5ms per edge lookup (indexed)
-
----
-
-## Conclusion
-
-### Strengths of Current Architecture
-
-1. **Deterministic Routing**: Visit-aware algorithm eliminates non-determinism
-2. **Graph-Based Design**: Explicit edges enable advanced queries and visualizations
-3. **Type Safety**: Pydantic everywhere (DB models, API models, graph models)
-4. **Testability**: Integration tests with testcontainers
-5. **Audit Trail**: Complete journey history with edge traceability
-6. **Flexibility**: CSV → SQL migration workflow enables non-technical rule management
-7. **Developer Experience**: FastAPI + Vite = fast iteration
-8. **Medical Safety**: Revisit edge priority ensures patient safety
-
-### Key Innovations
-
-1. **Visit-Aware Routing Algorithm**: Novel approach to prioritize medical urgency
-2. **Hybrid Management**: CSV for editing + SQL migrations for deployment
-3. **Graph + Repository Pattern**: Clean architecture for complex routing logic
-
-### Production Readiness
-
-**Yes, with additions**:
-- ✅ Graph-based routing implemented
-- ✅ Visit-aware algorithm tested
-- ✅ Comprehensive audit trail with edge IDs
-- 🔄 Add proper CORS whitelist
-- 🔄 Add structured logging (JSON logs)
-- 🔄 Set up Postgres backups + replication
-- 🔄 Add rate limiting (e.g., SlowAPI)
-- 🔄 Implement health checks (`/health` endpoint)
-- 🔄 Add monitoring (Prometheus + Grafana)
-- 🔄 Add graph visualization UI
-
-**Ready for MVP**: ✅ Yes
-**Ready for Scale**: 🔄 With Phase 1 improvements
+- Postgres write throughput
+- Redis memory
+- Graph query performance
 
 ---
 
