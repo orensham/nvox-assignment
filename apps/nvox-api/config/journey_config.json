@@ -1,0 +1,461 @@
+{
+  "version": "1.0",
+  "domain": "Living-Donor Kidney Transplant Journey",
+  "stages": [
+    {
+      "id": "REFERRAL",
+      "name": "Referral & Intake",
+      "questions": [
+        {
+          "id": "ref_age",
+          "text": "What is the recipient's age?",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 120
+          }
+        },
+        {
+          "id": "ref_has_nephrologist_note",
+          "text": "Do you have a nephrologist referral letter? (yes/no)",
+          "type": "string",
+          "constraints": {
+            "allowed_values": [
+              "yes",
+              "no"
+            ]
+          }
+        },
+        {
+          "id": "ref_karnofsky",
+          "text": "Karnofsky performance score (0-100).",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 100
+          }
+        }
+      ]
+    },
+    {
+      "id": "WORKUP",
+      "name": "Baseline Workup",
+      "questions": [
+        {
+          "id": "wrk_egfr",
+          "text": "What is the current eGFR (mL/min/1.73m²)?",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 150
+          }
+        },
+        {
+          "id": "wrk_infections_cleared",
+          "text": "Active infection present? (0=no, 1=yes)",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 1
+          }
+        },
+        {
+          "id": "wrk_support",
+          "text": "Describe caregiver support at home (brief).",
+          "type": "string",
+          "constraints": {
+            "max_length": 120
+          }
+        }
+      ]
+    },
+    {
+      "id": "MATCH",
+      "name": "Compatibility & Matching",
+      "questions": [
+        {
+          "id": "mtc_pra",
+          "text": "Panel Reactive Antibody (PRA) percentage (0-100).",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 100
+          }
+        },
+        {
+          "id": "mtc_donor_available",
+          "text": "Is there a potential living donor? (0=no, 1=yes)",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 1
+          }
+        },
+        {
+          "id": "mtc_notes",
+          "text": "Any sensitization history (transfusions, pregnancies, prior transplant)?",
+          "type": "string",
+          "constraints": {
+            "max_length": 200
+          }
+        }
+      ]
+    },
+    {
+      "id": "DONOR",
+      "name": "Donor Evaluation",
+      "questions": [
+        {
+          "id": "dnr_bmi",
+          "text": "Donor BMI (kg/m²).",
+          "type": "number",
+          "constraints": {
+            "min": 10,
+            "max": 60
+          }
+        },
+        {
+          "id": "dnr_clearance",
+          "text": "Did the donor pass medical clearance? (0=no, 1=yes)",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 1
+          }
+        },
+        {
+          "id": "dnr_motivation",
+          "text": "One sentence on donor motivation.",
+          "type": "string",
+          "constraints": {
+            "max_length": 160
+          }
+        }
+      ]
+    },
+    {
+      "id": "BOARD",
+      "name": "Multidisciplinary Board Review",
+      "questions": [
+        {
+          "id": "brd_risk_score",
+          "text": "Composite risk score (0=low, 10=high).",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 10
+          }
+        },
+        {
+          "id": "brd_needs_more_tests",
+          "text": "Does the board request additional tests? (0=no, 1=yes)",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 1
+          }
+        },
+        {
+          "id": "brd_comment",
+          "text": "Brief board comment.",
+          "type": "string",
+          "constraints": {
+            "max_length": 140
+          }
+        }
+      ]
+    },
+    {
+      "id": "PREOP",
+      "name": "Pre-Op Optimization",
+      "questions": [
+        {
+          "id": "prp_bp",
+          "text": "Average systolic BP this week (mmHg).",
+          "type": "number",
+          "constraints": {
+            "min": 60,
+            "max": 240
+          }
+        },
+        {
+          "id": "prp_hba1c",
+          "text": "Most recent HbA1c (%).",
+          "type": "number",
+          "constraints": {
+            "min": 4,
+            "max": 15
+          }
+        },
+        {
+          "id": "prp_infection_status",
+          "text": "Any unresolved infection? (0=no, 1=yes)",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "ORSCHED",
+      "name": "OR Scheduling & Consent",
+      "questions": [
+        {
+          "id": "ors_final_crossmatch",
+          "text": "Final crossmatch compatible? (0=no, 1=yes)",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 1
+          }
+        },
+        {
+          "id": "ors_days_to_or",
+          "text": "Days until planned OR date.",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 60
+          }
+        },
+        {
+          "id": "ors_consent_status",
+          "text": "Consent signed by recipient? (yes/no)",
+          "type": "string",
+          "constraints": {
+            "allowed_values": [
+              "yes",
+              "no"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "SURG",
+      "name": "Transplant Surgery",
+      "questions": [
+        {
+          "id": "srg_warm_isch_time",
+          "text": "Warm ischemia time (minutes).",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 120
+          }
+        },
+        {
+          "id": "srg_est_blood_loss",
+          "text": "Estimated blood loss (mL).",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 5000
+          }
+        },
+        {
+          "id": "srg_approach",
+          "text": "Surgical approach (open/laparoscopic/robotic).",
+          "type": "string",
+          "constraints": {
+            "allowed_values": [
+              "open",
+              "laparoscopic",
+              "robotic"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ICU",
+      "name": "Immediate Post-Op (ICU/PACU)",
+      "questions": [
+        {
+          "id": "icu_urine_hr",
+          "text": "Urine output in first hour (mL).",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 1000
+          }
+        },
+        {
+          "id": "icu_lactate",
+          "text": "Serum lactate (mmol/L).",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 15
+          }
+        },
+        {
+          "id": "icu_airway_stable",
+          "text": "Airway stable and extubated? (0=no, 1=yes)",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "WARD",
+      "name": "Ward Rehab & Education",
+      "questions": [
+        {
+          "id": "wrd_pain_score",
+          "text": "Average pain score today (0-10).",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 10
+          }
+        },
+        {
+          "id": "wrd_walk_meters",
+          "text": "Distance walked today (meters).",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 2000
+          }
+        },
+        {
+          "id": "wrd_teaching_done",
+          "text": "Has discharge education been completed? (yes/no)",
+          "type": "string",
+          "constraints": {
+            "allowed_values": [
+              "yes",
+              "no"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "HOME",
+      "name": "Home Monitoring",
+      "questions": [
+        {
+          "id": "hom_creatinine",
+          "text": "Most recent serum creatinine (mg/dL).",
+          "type": "number",
+          "constraints": {
+            "min": 0.1,
+            "max": 15.0
+          }
+        },
+        {
+          "id": "hom_tac_trough",
+          "text": "Tacrolimus trough level (ng/mL).",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 30
+          }
+        },
+        {
+          "id": "hom_symptom",
+          "text": "Describe any new symptom (or write 'none').",
+          "type": "string",
+          "constraints": {
+            "max_length": 160
+          }
+        }
+      ]
+    },
+    {
+      "id": "COMPLX",
+      "name": "Complication Management",
+      "questions": [
+        {
+          "id": "cpx_severity",
+          "text": "Complication severity (0=mild, 10=life-threatening).",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 10
+          }
+        },
+        {
+          "id": "cpx_days_since_onset",
+          "text": "Days since complication started.",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 60
+          }
+        },
+        {
+          "id": "cpx_brief",
+          "text": "One-line description of the complication.",
+          "type": "string",
+          "constraints": {
+            "max_length": 140
+          }
+        }
+      ]
+    },
+    {
+      "id": "RELIST",
+      "name": "Re-Listing (Graft Failure)",
+      "questions": [
+        {
+          "id": "rlt_graft_function",
+          "text": "Days of dialysis in last 30 days.",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 30
+          }
+        },
+        {
+          "id": "rlt_new_pra",
+          "text": "Updated PRA (%) after failure.",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 100
+          }
+        },
+        {
+          "id": "rlt_summary",
+          "text": "Short summary of failure course.",
+          "type": "string",
+          "constraints": {
+            "max_length": 160
+          }
+        }
+      ]
+    },
+    {
+      "id": "EXIT",
+      "name": "Exit / Not a Candidate",
+      "questions": [
+        {
+          "id": "ext_reason_code",
+          "text": "Exit reason code (0=patient choice, 1=medical, 2=logistic).",
+          "type": "number",
+          "constraints": {
+            "min": 0,
+            "max": 2
+          }
+        },
+        {
+          "id": "ext_notes",
+          "text": "Short note on exit decision.",
+          "type": "string",
+          "constraints": {
+            "max_length": 160
+          }
+        }
+      ]
+    }
+  ],
+  "entry_stage": "REFERRAL"
+}

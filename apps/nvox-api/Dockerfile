@@ -15,6 +15,7 @@ WORKDIR /app
 ENV PATH="/app/.venv/bin:${PATH}"
 
 COPY apps/nvox-api/src /app/
+COPY apps/nvox-api/config /app/config
 COPY --from=builder /app/.venv /app/.venv
 
 CMD ["fastapi", "run", "main.py", "--port", "8000"]

@@ -2,10 +2,12 @@ from fastapi import APIRouter, Depends, status, HTTPException
 from api.models.auth import SignupRequest, SignupResponse, LoginRequest, LoginResponse, LogoutResponse, TokenData
 from repositories.user_repository import UserRepository
 from repositories.session_repository import SessionRepository
-from dependencies.repositories import get_user_repository, get_session_repository
+from repositories.journey_repository import JourneyRepository
+from dependencies.repositories import get_user_repository, get_session_repository, get_journey_repository
 from dependencies.auth import get_current_user
 from utils.hashing import hash_email, hash_password, verify_password
 from utils.jwt import create_access_token, get_jti_from_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from journey.config_loader import get_journey_config
 from uuid import uuid4
 from datetime import datetime
 
@@ -17,6 +19,7 @@ router = APIRouter()
 async def signup(
         request: SignupRequest,
         user_repository: UserRepository = Depends(get_user_repository),
+        journey_repository: JourneyRepository = Depends(get_journey_repository),
 ) -> SignupResponse:
     email_hash = hash_email(request.email.lower())
     if await user_repository.user_exists_by_email_hash(email_hash):
@@ -29,12 +32,36 @@ async def signup(
     user_id = uuid4()
     journey_started_at = datetime.utcnow()
 
+    journey_config = get_journey_config()
+    entry_stage = journey_config.entry_stage
+
     await user_repository.create_user(
         user_id=user_id,
         email_hash=email_hash,
         password_hash=password_hash,
-        journey_stage="REFERRAL",
+        journey_stage=entry_stage,
         journey_started_at=journey_started_at
+    )
+
+    await journey_repository.create_journey_state(
+        user_id=user_id,
+        stage_id=entry_stage,
+        visit_number=1
+    )
+
+    await journey_repository.enter_stage(
+        user_id=user_id,
+        stage_id=entry_stage,
+        visit_number=1
+    )
+
+    await journey_repository.record_transition(
+        user_id=user_id,
+        from_stage_id=None,
+        to_stage_id=entry_stage,
+        from_visit_number=None,
+        to_visit_number=1,
+        transition_reason="Initial signup"
     )
 
     return SignupResponse(
@@ -43,7 +70,7 @@ async def signup(
         email=email_hash,
         message="Account created successfully",
         journey={
-                "current_stage": "REFERRAL",
+                "current_stage": entry_stage,
                 "started_at": journey_started_at.isoformat()
         })
 

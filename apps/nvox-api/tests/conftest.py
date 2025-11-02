@@ -1,5 +1,6 @@
 import dependencies.db as db_deps
 from repositories.user_repository import UserRepository
+from repositories.journey_repository import JourneyRepository
 from nvox_common.db.nvox_db_client import NvoxDBClient
 from main import app
 import pytest
@@ -7,6 +8,8 @@ import sys
 from pathlib import Path
 from typing import AsyncGenerator
 from httpx import AsyncClient, ASGITransport
+from journey.config_loader import JourneyConfig, load_journey_config
+from journey.rules_loader import RoutingRules, load_routing_rules
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
@@ -17,6 +20,24 @@ pytest_plugins = ["nvox_common.db.tests.conftest"]
 def user_repository(db_pool) -> UserRepository:
     db_client = NvoxDBClient(db_pool)
     return UserRepository(db_client)
+
+
+@pytest.fixture(scope="function")
+def journey_repository(db_pool) -> JourneyRepository:
+    db_client = NvoxDBClient(db_pool)
+    return JourneyRepository(db_client)
+
+
+@pytest.fixture(scope="session")
+async def journey_config():
+    config_path = Path(__file__).parent.parent / "config" / "journey_config.json"
+    return await load_journey_config(config_path, redis_client=None)
+
+
+@pytest.fixture(scope="session")
+async def routing_rules():
+    rules_path = Path(__file__).parent.parent / "config" / "routing_rules.csv"
+    return await load_routing_rules(rules_path, redis_client=None)
 
 
 @pytest.fixture(scope="function")
